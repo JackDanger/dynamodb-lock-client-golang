@@ -10,12 +10,12 @@ import (
 // GetLock requests a lock, and returns a lock on failure
 func (d *DynamoDBLockClient) GetLock() (bool, error) {
 
-	logrus.Debugf("Attempting to get lock '%s' for %s", d.LockName, d.LeaseDuration)
+	d.logger().Debugf("Attempting to get lock '%s' for %s", d.LockName, d.LeaseDuration)
 
 	if d.Identifier == "" {
 		uuid, err := uuid.NewRandom()
 		if err != nil {
-			logrus.Debugf("An error occured: %s", err)
+			d.logger().Debugf("An error occured: %s", err)
 			return false, err
 		}
 		d.Identifier = uuid.String()
@@ -23,7 +23,7 @@ func (d *DynamoDBLockClient) GetLock() (bool, error) {
 
 	err := d.dynamoGetLock()
 	if err != nil {
-		logrus.Debugf("An error occured: %s", err)
+		d.logger().Debugf("An error occured: %s", err)
 		return false, err
 	}
 
@@ -59,21 +59,29 @@ func (d *DynamoDBLockClient) periodicallyRenewLease() {
 
 	for true {
 
-		logrus.Debugf("Waiting for %s", d.HeartbeatPeriod)
+		d.logger().Debugf("Waiting for %s", d.HeartbeatPeriod)
 		time.Sleep(d.HeartbeatPeriod)
 
 		if !d.sendHeartbeats {
 			break
 		}
 
-		logrus.Debugf("Renewing lease on lock '%s' for %s", d.LockName, d.LeaseDuration)
+		d.logger().Debugf("Renewing lease on lock '%s' for %s", d.LockName, d.LeaseDuration)
 		err := d.dynamoGetLock()
 		if err != nil {
 			d.lockError = err // save so we can return why later
-			logrus.Debug(err)
+			d.logger().Debug(err)
 			break
 		}
 
 	}
-	logrus.Debug("Stopping heartbeats")
+	d.logger().Debug("Stopping heartbeats")
+}
+
+func (d *DynamoDBLockClient) logger() *logrus.Logger {
+	if d.Logger != nil {
+		d.Logger = logrus.StandardLogger()
+	}
+
+	return d.Logger
 }

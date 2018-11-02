@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/sirupsen/logrus"
 )
 
 // DynamoDBLockClient describes the fields for a lock client
@@ -14,6 +15,7 @@ type DynamoDBLockClient struct {
 	TableName       string
 	Identifier      string
 	Client          dynamodbiface.DynamoDBAPI
+	Logger          *logrus.Logger
 	lockID          string
 	sendHeartbeats  bool
 	lockError       error
