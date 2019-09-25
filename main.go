@@ -79,7 +79,7 @@ func (d *DynamoDBLockClient) periodicallyRenewLease() {
 }
 
 func (d *DynamoDBLockClient) logger() *logrus.Logger {
-	if d.Logger != nil {
+	if d.Logger == nil {
 		d.Logger = logrus.StandardLogger()
 	}
 
