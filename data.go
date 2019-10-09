@@ -18,5 +18,6 @@ type DynamoDBLockClient struct {
 	Logger          *logrus.Logger
 	lockID          string
 	sendHeartbeats  bool
+	heartbeatCount  int
 	lockError       error
 }

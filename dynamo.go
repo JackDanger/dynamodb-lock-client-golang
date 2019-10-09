@@ -22,11 +22,20 @@ func (d *DynamoDBLockClient) dynamoGetLock() error {
 		return err
 	}
 
-	itemValue, err := dynamodbattribute.MarshalMap(map[string]interface{}{
+	var itemValue map[string]*dynamodb.AttributeValue
+
+	itemValue, err = dynamodbattribute.MarshalMap(map[string]interface{}{
 		"expiry":     time.Now().UnixNano() + int64(d.LeaseDuration/time.Nanosecond),
 		"key":        d.LockName,
 		"identifier": d.Identifier,
+		"heartbeats": d.heartbeatCount,
 	})
+
+	if d.heartbeatCount == 0 {
+		itemValue["set_at"] = &dynamodb.AttributeValue{
+			S: aws.String(time.Now().Format(time.RFC3339)),
+		}
+	}
 
 	input := &dynamodb.PutItemInput{
 		ExpressionAttributeNames:  expr.Names(),
@@ -42,6 +51,22 @@ func (d *DynamoDBLockClient) dynamoGetLock() error {
 	}
 	return nil
 
+}
+
+func (d *DynamoDBLockClient) dynamoExamineLock() (map[string]*dynamodb.AttributeValue, error) {
+	itemValue, err := dynamodbattribute.MarshalMap(map[string]interface{}{
+		"key": d.LockName,
+	})
+	input := &dynamodb.GetItemInput{
+		TableName: aws.String(d.TableName),
+		Key:       itemValue,
+	}
+
+	response, err := d.Client.GetItem(input)
+	if err != nil {
+		return nil, err
+	}
+	return response.Item, nil
 }
 
 func (d *DynamoDBLockClient) dynamoRemoveLock() error {
